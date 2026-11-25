@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AirLaw Scroll</title>
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AirLaw">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a phone feed you can't put down — loud, fast, rewarding.
+   IDEA: TikTok's full-screen vertical feed, one law fact per screen.
+   PICTURE: each card is a flat saturated colour field with a giant headline.
+   COLOUR+TYPE: one vivid colour per topic, black chrome; Unbounded + Inter.
+   LAYOUT: snap-scroll cards, top bar, right action rail, bottom source chip. */
+:root{color-scheme:dark;--top:calc(env(safe-area-inset-top) + 56px)}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#000;color:#fff;font:16px/1.5 Inter,system-ui,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+#feed{height:100dvh;overflow-y:auto;scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none}
+#feed::-webkit-scrollbar{display:none}
+.card{position:relative;height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;background:var(--c);color:var(--ink);overflow:hidden;display:flex}
+.card::before{content:"";position:absolute;width:120vmax;height:120vmax;right:-60vmax;top:-70vmax;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.28),transparent 60%);pointer-events:none}
+.card::after{content:attr(data-big);position:absolute;right:-.06em;bottom:-.2em;font:800 46vmin/1 Unbounded,sans-serif;opacity:.08;pointer-events:none;white-space:nowrap}
+.inner{position:relative;z-index:1;margin:auto 0;width:100%;max-width:720px;padding:calc(var(--top) + 12px) 84px calc(env(safe-area-inset-bottom) + 64px) 22px;max-height:100%;overflow-y:auto;scrollbar-width:none}
+.inner::-webkit-scrollbar{display:none}
+.badge{display:inline-flex;gap:6px;align-items:center;font:700 13px/1 Inter;padding:8px 12px;border-radius:99px;background:var(--ink);color:var(--c);margin-bottom:18px}
+h2{font:800 clamp(26px,6.4vw,44px)/1.08 Unbounded,sans-serif;margin:0 0 16px;text-wrap:balance;letter-spacing:-.01em}
+.big{font:800 clamp(44px,14vw,92px)/1 Unbounded,sans-serif;margin:0 0 16px;letter-spacing:-.03em;overflow-wrap:anywhere}
+.body{font-size:clamp(17px,4.4vw,20px);line-height:1.45;margin:0 0 14px;font-weight:500}
+.ex{font-size:15px;line-height:1.45;padding:12px 14px;border-radius:14px;background:rgba(0,0,0,.14);margin:0 0 14px}
+.dark .ex{background:rgba(255,255,255,.14)}
+.ex b{font-weight:700}
+.wrong{font-size:clamp(19px,5vw,24px);font-weight:700;text-decoration:line-through;text-decoration-thickness:3px;opacity:.75;margin:0 0 14px}
+.lbl{display:block;font:700 13px/1 Inter;margin-bottom:6px;opacity:.75}
+.src{position:absolute;left:22px;bottom:calc(env(safe-area-inset-bottom) + 18px);z-index:2;font:600 13px/1 Inter;padding:7px 11px;border-radius:99px;background:rgba(0,0,0,.22);color:#fff}
+.hid{filter:blur(9px);opacity:.55;user-select:none;pointer-events:none}
+.reveal{display:block;width:100%;margin:6px 0 14px;padding:16px;border-radius:16px;background:var(--ink);color:var(--c);font:800 17px/1.2 Unbounded,sans-serif;animation:pulse 1.6s ease-in-out infinite}
+.judge{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.judge[hidden]{display:none}
+.judge button{min-height:56px;border-radius:16px;font:800 16px/1.1 Unbounded,sans-serif;background:#fff;color:#111;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.judge button.no{background:#111;color:#fff}
+.judge button:active{transform:translateY(3px);box-shadow:none}
+.rail{position:absolute;right:10px;bottom:calc(env(safe-area-inset-bottom) + 90px);z-index:3;display:flex;flex-direction:column;gap:18px;align-items:center}
+.rail button{display:flex;flex-direction:column;align-items:center;gap:4px;font:700 12px/1 Inter;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.rail .ic{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.28);transition:transform .15s}
+.rail svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.rail .on .ic{background:#fff}.rail .like.on svg{fill:#ff2d6f;stroke:#ff2d6f}.rail .done.on svg{stroke:#0a0}
+.rail button:active .ic{transform:scale(.88)}
+header{position:fixed;inset:0 0 auto;z-index:10;padding:env(safe-area-inset-top) 12px 0;height:var(--top);display:flex;align-items:center;gap:8px;background:linear-gradient(rgba(0,0,0,.55),transparent)}
+.pill{font:800 14px/1 Unbounded,sans-serif;padding:9px 12px;border-radius:99px;background:rgba(0,0,0,.45);white-space:nowrap}
+.tabs{flex:1;display:flex;justify-content:center;gap:4px}
+.tabs button{font:700 15px/1 Inter;padding:10px 10px;opacity:.65;border-bottom:3px solid transparent;white-space:nowrap}
+.tabs button.on{opacity:1;border-color:#fff}
+#prog{position:fixed;top:0;left:0;height:3px;background:#fff;z-index:11;width:0;transition:width .3s}
+#sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.6);display:flex;align-items:flex-end}
+#sheet[hidden]{display:none}
+.panel{width:100%;max-height:80dvh;overflow-y:auto;background:#111;border-radius:22px 22px 0 0;padding:20px 16px calc(env(safe-area-inset-bottom) + 20px)}
+.panel h3{font:800 22px/1.1 Unbounded,sans-serif;margin:0 0 4px}
+.panel p{margin:0 0 16px;opacity:.7;font-size:14px}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.chip{min-height:64px;border-radius:16px;padding:12px;text-align:left;background:var(--c);color:var(--ink);font:700 15px/1.2 Inter;display:flex;flex-direction:column;justify-content:space-between;gap:6px;border:3px solid transparent}
+.chip small{font:600 12px/1 Inter;opacity:.75}
+.chip.on{border-color:#fff;box-shadow:0 0 0 2px #000 inset}
+.row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.row button{flex:1;min-height:48px;border-radius:14px;background:#fff;color:#111;font:700 15px Inter}
+.row button.ghost{background:#2a2a2a;color:#fff}
+#toast{position:fixed;left:50%;top:calc(var(--top) + 14px);transform:translate(-50%,-20px);z-index:30;font:800 18px/1 Unbounded,sans-serif;padding:12px 18px;border-radius:99px;background:#fff;color:#111;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.heart{position:fixed;z-index:25;width:110px;height:110px;margin:-55px 0 0 -55px;pointer-events:none;animation:pop .8s ease-out forwards}
+.heart path{fill:#ff2d6f}
+.conf{position:fixed;z-index:26;width:10px;height:14px;border-radius:2px;pointer-events:none;animation:fall 1.1s ease-out forwards}
+.end{background:#111;color:#fff}
+.hint{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 58px);transform:translateX(-50%);z-index:9;font:700 13px Inter;padding:8px 14px;border-radius:99px;background:rgba(0,0,0,.5);animation:bob 1.4s ease-in-out infinite;transition:opacity .4s}
+@keyframes pulse{50%{transform:scale(1.025)}}
+@keyframes pop{0%{transform:scale(.3) rotate(-12deg);opacity:0}25%{transform:scale(1.15);opacity:1}100%{transform:scale(1) translateY(-90px);opacity:0}}
+@keyframes fall{to{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}}
+@keyframes bob{50%{transform:translate(-50%,-6px)}}
+@media (min-width:900px){.inner{padding-left:60px}.src{left:60px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="prog"></div>
+<header>
+  <span class="pill" id="streak" title="Série de bonnes réponses">🔥 0</span>
+  <nav class="tabs">
+    <button data-tab="foryou" class="on">Pour toi</button>
+    <button data-tab="saved">À revoir</button>
+    <button data-tab="topics">Thèmes</button>
+  </nav>
+  <span class="pill" id="xp">0 XP</span>
+</header>
+<main id="feed" aria-live="polite"></main>
+<div class="hint" id="hint">Swipe vers le haut ↑</div>
+<div id="sheet" hidden>
+  <div class="panel" role="dialog" aria-label="Thèmes">
+    <h3>Thèmes</h3>
+    <p>Choisis un ou plusieurs thèmes. Rien de sélectionné = tout le cours.</p>
+    <div class="chips" id="chips"></div>
+    <div class="row">
+      <button id="ess" class="ghost">Essentiel (Part 0)</button>
+      <button id="go">C'est parti</button>
+    </div>
+    <div class="row">
+      <button id="reset" class="ghost">Remettre à zéro (acquis, XP)</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+// [type, topic, title, body, extra, source]
+// types: def (notion), case (arrêt), num (chiffre), trap (piège), q (quiz)
+const CARDS = [
+// ───────── MÉTHODE
+["def","core","The 5-step answer method","1 Which regime? (States, ratifications, Art. 1) → 2 Cause of action (Art. 17/18/19 MC99; Arts 4–7 Reg. 261) → 3 Level of liability (limits, tiers, defences) → 4 Jurisdiction (Art. 33/46; Brussels Ia; Arts 31 & 35) → 5 Other claims (Art. 29, Reg. 261, other defendants, insurance).","Run it claim by claim, claimant by claimant.","Part 0.6"],
+["def","core","The examiner's rules of form","Never just “MC99 applies”: argue every answer. Cite in the text (“Article 1 of the MC99 states…”). Unclear question → “I assume that this question is intended to mean…”. Obvious answer first, then the other side's arguments.","25% question ≈ 45 min in a 3-hour paper. Full sentences, bullets only if out of time.","Part 0.6"],
+["def","core","USE CASE LAW","The instructions require you to illustrate answers with case law, and no case is in the texts provided: Saks, Floyd, Laudamotion, Niki, Sturgeon, Wallentin-Hermann, McDonagh… all from memory.","Repeated in capitals at the preparation session.","Part 0"],
+["def","core","Provided on the day","Warsaw 1929 + Hague 1955, MC99, Reg. 261/2004, Rome 1952, Montreal Protocol 1978, the two 2009 Conventions, Reg. 785/2004. Rule: what is provided is navigated, what is not is learnt.","NOT provided: ratification lists, cases, PLD, current MC99 limits, Reg. 2026/2202, Reg. 1107/2006, CMR, GDPR, Brussels Ia.","Part 0.1"],
+["q","core","Is the Product Liability Directive provided at the exam?","No. Neither Directive 85/374 nor Directive (EU) 2024/2853: product, defect, liable persons, defences, presumptions, 3/10/25-year periods — all from memory.","","Part 0"],
+["def","core","What private air law treaties are","Public international law instruments with private-law content: they bind States and apply only between States Parties for which they are in force.","Half of the exam flows from this: no ratification, no convention.","Fiche 1"],
+["trap","core","“Private air law is private international law”","Wrong. Private international law = conflict of laws (jurisdiction, applicable law, enforcement). Air law treaties are public international law with private-law content.","","Fiche 1"],
+["def","core","What the conventions leave to national law","Quantum of damages (incl. mental injury), who may claim (dependants), procedure, calculation of time limits, forum non conveniens, domestic carriage.","→ This is why forum shopping drives the litigation.","Fiche 1"],
+["case","core","BA149 — Kuwait 1990","Same facts, same text, opposite results: the French Cour de cassation (15.7.1999) compensated the hostages; the House of Lords (Sidhu v. BA) applied Warsaw as exclusive → nothing.","Proof that uniformity is incomplete without a common court.","Fiche 1"],
+["case","core","Walz (C-63/09)","MC99 terms must receive a uniform and autonomous interpretation (sui generis), not national meanings.","","Fiche 1"],
+["def","core","Remedies for fragmentation","An interpretation rule like Art. 5(1) Cape Town 2001 (purpose, international character, uniformity), an advisory body of experts, AI to access foreign case law.","Causes: no definitions, mental injury, Art. 35 calculation, no common court, exclusivity, language versions.","Fiche 1"],
+["trap","core","Treating a US or English decision as binding","Outside its jurisdiction it is persuasive only.","","Fiche 1"],
+// ───────── QUEL RÉGIME
+["def","regime","International carriage (Art. 1(2) MC99)","Departure and destination in two States Parties, OR in a single State Party with an agreed stopping place in another State — even a non-party. The test is the contract, not the route flown.","Technical stops don't count; a return ticket has departure and destination in the same State.","Part 0.2 · Fiche 3"],
+["trap","regime","“The departure State is an MC99 party, so MC99 applies”","Both departure and destination States must be parties (or one State with an agreed stop abroad).","","Fiche 2"],
+["case","regime","Grein v. Imperial Airways (1937)","“The rules relate not to journeys, not to flights … but to carriage performed under one contract.” One contract = one carriage.","Applicability of cargo also follows the air waybill.","Part 0.2"],
+["def","regime","Nationality is irrelevant","Neither the passenger's nor the carrier's nationality matters for MC99 or Warsaw.","","Part 0.2"],
+["def","regime","The highest common instrument","MC99 first → else the highest Warsaw instrument both States share (WC 1929, WC/Hague 1955, MAP 4) → else national law designated by the forum's conflict rules.","","Part 0.2 · Fiche 2"],
+["case","regime","Chubb & Son v. Asiana (US)","Cargo Seoul–San Francisco: US party to Warsaw only (until 2003), Korea to the Hague Protocol only → no common instrument → no treaty applies.","","Part 0.4 · Fiche 2"],
+["trap","regime","Treating Warsaw 1929 and Warsaw/Hague as one convention","They are distinct instruments. A Warsaw-only and a Hague-only State share nothing (Chubb v. Asiana).","","Fiche 2"],
+["def","regime","Art. 55 MC99","Between MC99 parties, MC99 prevails over the Warsaw instruments, which survive for relations with non-MC99 States.","A transition that avoids gaps.","Part 0.2"],
+["def","regime","Art. 53(7) MC99 — timing","MC99 enters into force for an acceding State on the 60th day after deposit. “Which regime?” is answered at the date of the carriage.","","Fiche 2"],
+["def","regime","The EU overlay: Reg. 2027/97 (amended by 889/2002)","Extends the MC99 rules to Community carriers, including flights within a single Member State (passengers and baggage), and adds an advance payment of at least 16,000 SDR in case of death.","","Part 0.2 · Fiche 2"],
+["def","regime","Reg. 261 is an addition, not an alternative","It applies in parallel to MC99, never instead of it (IATA & ELFAA, C-344/04).","","Part 0.2"],
+["num","regime","23%","Share of major accidents (2016–2026) in which MC99 was the operative regime.","Most accidents are domestic flights in non-MC99 States → national law (Pakistan, DRC, Russia, US local law).","Part 0.2 · Fiche 2"],
+["num","regime","≈ 145","Number of MC99 ratifications or accessions (EU included); Warsaw has 152.","The modules say 141 and 145 — use “about 145”.","Fiche 2"],
+["q","regime","London – Paris – Tehran: which regime?","Warsaw as amended at The Hague: Iran is not an MC99 party, but the UK and Iran are both parties to Warsaw/Hague.","","Part IV.2"],
+["q","regime","St George's (Grenada) – Phnom Penh: which regime?","MC99: Grenada (since 7.8.2026) and Cambodia (since 1.4.2025) are both parties.","","Part IV.2"],
+["q","regime","Nairobi – Thimphu: which regime?","National law designated by the forum's conflict rules: Bhutan is party to nothing.","","Part IV.2"],
+["q","regime","Melbourne – Port Moresby – Melbourne: which regime?","MC99: departure and destination in Australia (party) with an agreed stopping place abroad — whatever Papua New Guinea's status.","","Part IV.2"],
+["def","regime","Warsaw/Hague but NOT MC99","Iran, Iraq, Papua New Guinea, Afghanistan, Libya, Laos, North Korea, Yemen, Algeria, Venezuela, Belarus, Uzbekistan, Guinea.","Warsaw only (no Hague): Myanmar. Nothing at all: Bhutan, Somalia, Haiti.","Part 0.2"],
+["def","regime","MC99 parties you might doubt","Thailand (since 2017, never a Warsaw party), Russia (since 21.8.2017), Cambodia (1.4.2025), Grenada (7.8.2026), China incl. Hong Kong, India, Türkiye, Ukraine.","Only signed: Bahamas, Central African Republic, Zambia.","Part 0.2"],
+["q","regime","Which State is party to Warsaw 1929 only, without the Hague Protocol?","Myanmar.","","Part 0.2"],
+["def","regime","Scope of MC99 (Art. 1(1))","Carriage of persons, baggage or cargo by aircraft for reward, or gratuitous carriage by an air transport undertaking. A contract is required.","Crew, stowaways and gratuitous carriage by a private person are outside.","Fiche 3"],
+["def","regime","Scope comes first","MC99 is exclusive: outside its scope, Warsaw or national law applies; inside it without a remedy, there is no claim at all.","Never start with Art. 17 before checking Art. 1.","Fiche 3"],
+["def","regime","Odd items in MC99 scope","“Aircraft” is defined by national law. Animals = baggage or cargo; human remains = cargo. State carriage covered (Art. 2(1)), with a possible Art. 57 reservation for military carriage.","","Fiche 3"],
+["def","regime","Warsaw 1929: the bargain","Uniform rules and presumed fault for passengers, in exchange for limited, insurable liability for a fragile industry. Limit: 125,000 gold francs per passenger, 250 francs/kg.","Drafted by CITEJA, in French.","Fiche 2"],
+["num","regime","250,000 francs","Passenger limit after the Hague Protocol 1955 (double Warsaw). The US ratified Hague only in 2003.","","Fiche 2"],
+["def","regime","The road to MC99","Guadalajara 1961 (actual carrier) · Guatemala City 1971 (never in force) · Montreal Additional Protocols 1975 (SDR; MAP 4: 17 SDR/kg) · 1966 Montreal Agreement (USD 75,000) · 1995 IATA agreement (strict up to 100,000 SDR).","","Fiche 2"],
+["num","regime","28 May 1999 → 4 Nov 2003","MC99 done in Montreal, then in force. A stand-alone convention, not a protocol.","","Fiche 2"],
+["def","regime","Contracting v. actual carrier (Art. 39)","Contracting carrier: makes the contract, answers for the whole carriage. Actual carrier: performs all or part by its authority (code-share, wet lease), answers for its part. Sue either or both (Arts 40, 45).","","Fiche 4"],
+["def","regime","Chapter V in one card","Art. 41 acts imputed to each other · Art. 44 total ≤ highest amount recoverable · Art. 46 extra forum at the actual carrier's domicile/PPB · Art. 47 lowering clauses void · Art. 48 recourse outside MC99.","","Fiche 4"],
+["def","regime","Successive carriage (Arts 1(3), 36)","One undivided carriage if regarded as a single operation. Passengers: only the carrier of the stage where the accident occurred (unless the first assumed the whole). Cargo and baggage: first, last and segment carrier, jointly and severally.","","Fiche 4"],
+["q","regime","Ms Kramer bought her ticket from Maple Air; the flight was operated by Russia Air. Whom can she sue under MC99?","Either or both: Maple Air as contracting carrier (whole carriage), Russia Air as actual carrier (its part) — Arts 39, 40, 45.","Under Reg. 261 it would be the operating carrier only.","Fiche 4 · Part IV.1"],
+// ───────── ART. 17 PASSAGERS
+["def","pax","Art. 17(1): the four conditions","(1) an accident, (2) causation, (3) death or bodily injury, (4) on board or during embarking/disembarking. “Upon condition only” = no fault to prove.","Test them one by one in every answer.","Fiche 5"],
+["case","pax","Air France v. Saks (US SC, 1985)","Accident = an unexpected or unusual event or happening external to the passenger, not the passenger's own reaction to the normal operation of the aircraft.","Ms Saks' deafness after a normal pressurisation: no accident.","Part 0.4 · Fiche 5"],
+["case","pax","GN v. ZU — Niki Luftfahrt (C-532/18, 19.12.2019)","EU: accident = unforeseen, harmful and involuntary event. Covers any object used to serve passengers that causes injury — no hazard typical of aviation needed.","The hot coffee case.","Part 0.4 · Fiche 5"],
+["case","pax","YL v. Altenrhein (C-70/20, 2021)","A hard landing within the aircraft's normal operating range is not an accident: “unforeseen” is judged by industry standards, not by the passenger.","","Part 0.4 · Fiche 5"],
+["case","pax","JR v. Austrian Airlines (C-589/20, 2.6.2022)","A fall on the disembarkation stairs with no ascertainable cause is still an accident; the carrier's only answer is Art. 20 (she was not holding the handrail).","","Part 0.4 · Fiche 5"],
+["trap","pax","“Austrian Airlines = the falling coffee cup”","No — that's Niki (C-532/18). Austrian Airlines is the fall on the stairs. Module 2 confused them.","","Fiche 5"],
+["case","pax","Barclay v. British Airways (England, 2008)","The event must relate to the operation of the aircraft: a slip on a plastic strip in the cabin floor was no accident.","","Part 0.4"],
+["case","pax","Olympic Airways v. Husain (US SC, 2004)","The crew's omission can be the event: refusing to move an asthmatic passenger away from the smoking section, who died = accident.","Contrast Labbadia v. Alitalia (Eng. 2019): inaction is not an event — won by reframing as positive acts (stairs without canopy in snow).","Part 0.4 · Fiche 5"],
+["case","pax","MacDonald v. Air Canada (1971) · Sakaria v. TWA (1993)","A pre-existing condition is no accident: elderly passenger falling near the carousel; heart attack a day after a hijacking.","Causation is a question of fact: the accident must be the proximate cause.","Part 0.4 · Fiche 5"],
+["def","pax","Accident or not?","Terrorism and hijacking: yes (Day v. TWA, Husserl v. Swissair). Normal seat arrangement: no (Potter v. Delta). Deep vein thrombosis: no (DVT Group Litigation [2005] UKHL 72).","","Fiche 5"],
+["case","pax","Day v. TWA (2d Cir. 1975)","Embarking is tested functionally: activity, control by the carrier, location, imminence. Passengers queuing for the pre-boarding search at the gate were embarking.","What the passenger is doing matters more than where (also McCarthy v. Northwest).","Part 0.4 · Fiche 5"],
+["trap","pax","Passenger injured in the general terminal","Not embarking or disembarking. But a claim may exist under national law against the airport (e.g. its carpet).","","Fiche 5"],
+["case","pax","Eastern Airlines v. Floyd (US SC, 1991)","Pure mental injury is not “bodily injury” (comparing “lésion corporelle”): no recovery under Art. 17.","","Part 0.4 · Fiche 5"],
+["case","pax","Morris v. KLM / King v. Bristow [2002] UKHL 7","England: pure mental injury recoverable only if it is an expression of physical injury to the brain.","","Part 0.4 · Fiche 5"],
+["case","pax","Ehrlich (2d Cir. 2004) v. Doe v. Etihad (6th Cir. 2017)","US split on mental injury with a bodily injury: Ehrlich — only if caused by the bodily injury; Doe — if it merely accompanies a bodily injury caused by the accident.","Doe: needle in the seat pocket, pricked finger, fear of HIV.","Part 0.4 · Fiche 5"],
+["case","pax","BT v. Laudamotion (C-111/21, 20.10.2022)","EU: pure psychological injury (PTSD) is recoverable if medically established and serious enough to affect general health and to need treatment.","Engine exploded on take-off, evacuation, nobody physically hurt.","Part 0.4 · Fiche 5"],
+["q","pax","Diagnosed PTSD after an evacuation, no physical injury. Claim under Art. 17?","Depends on the forum: US no (Floyd), England no (Morris), EU yes if medically established and serious (Laudamotion) → the passenger will shop for an EU forum.","","Fiche 5 · V.3"],
+["def","pax","Why mental injury matters so much","Exclusivity (Art. 29): if MC99 gives no remedy, there is no fallback on national tort law. Hence broad readings of Art. 17 by some judges.","Laudamotion is defensible: the 1999 Conference did not want to freeze the case law.","Fiche 5"],
+["def","pax","Death and missing passengers","Death is defined by national law; missing passengers raise presumption periods (MH370). MC99 also provides for advance payments (Art. 28).","","Fiche 5"],
+["q","pax","Mr Smith (KLM) spills his own coffee and is burnt. Outcome?","Accident arguable (Niki: object used to serve passengers), but Art. 20 contributory negligence — Medina v. American Airlines (2006): his own negligence was the sole proximate cause.","","Part IV.5"],
+["def","pax","After a major crash: who else?","Manufacturers, maintenance organisations, ANSPs, lessors, airports, governments — MC99 gives them no protection.","Families want answers, accountability, prevention, compensation.","Fiche 5"],
+// ───────── CHIFFRES
+["num","money","151,880 SDR","MC99 · death/injury · strict first tier per passenger, in force since 28.12.2024.","1999 text: 100,000 — what your copy may show.","Part 0.3 · Fiche 6"],
+["num","money","6,303 SDR","MC99 · limit per passenger for delay (since 28.12.2024).","1999 text: 4,150.","Part 0.3"],
+["num","money","1,519 SDR","MC99 · limit per passenger for baggage (since 28.12.2024), moral damage included.","1999 text: 1,000.","Part 0.3"],
+["num","money","26 SDR/kg","MC99 · limit for cargo (since 28.12.2024) — unbreakable.","1999 text: 17.","Part 0.3"],
+["trap","money","Quoting the 1999 limits from the copy provided","Say they have been revised under Art. 24 and give 151,880 / 6,303 / 1,519 / 26 SDR.","","Part 0 · Fiche 6"],
+["def","money","Art. 24: revision of the limits","ICAO reviews every 5 years by inflation. No ratification: tacit acceptance unless a majority of States register disapproval.","2009: 113,100 / 4,694 / 1,131 / 19 · 2019: 128,821 / 5,346 / 1,288 / 22.","Fiche 6"],
+["def","money","The two tiers (Art. 21)","Up to 151,880 SDR: strict, only defence contributory negligence. Above: unlimited, unless the carrier proves no negligence of its own, or the sole fault of a third party (Art. 21(2)).","The burden is on the carrier, and heavy.","Fiche 6"],
+["trap","money","“151,880 SDR caps the damages”","It is a threshold, not a cap: above it liability is unlimited unless the carrier proves Art. 21(2).","","Fiche 6"],
+["case","money","N.S. v. Ukraine International Airlines (2025 ONCA 587)","PS752, shot down after take-off from Tehran (8.1.2020): carrier failed Art. 21(2) — no risk assessment under ICAO Doc 10084, ignored NOTAMs and advisories.","That other airlines flew the route was no defence.","Fiche 6"],
+["def","money","Breaking the limits (Art. 22(5))","Delay and baggage limits fall for intent, or recklessness with knowledge that damage would probably result, of the carrier or its servants acting within their employment.","Cargo: never.","Part 0.3 · Fiche 6"],
+["def","money","Special declaration of interest","Made at handover (with a supplementary sum if required), it raises the baggage and cargo limits (Art. 22(2)–(3)).","The only way to raise the cargo limit.","Fiche 6"],
+["def","money","Arts 25–27: contracting around","Art. 25 carrier may raise or waive limits · Art. 26 lower limits void (contract survives) · Art. 27 add protection, never remove it.","","Fiche 6"],
+["def","money","Art. 20: contributory negligence","Exonerates wholly or partly under every head of liability — even the strict first tier of Art. 21(1).","","Fiche 6"],
+["case","money","Zicherman v. Korean Air Lines (US SC, 1996)","MC99 says when and up to how much, not which damages: what is legally cognizable is decided by the applicable domestic law.","Silverman v. Ryanair (Eng. 2021): pass-through to Rome I/II, not automatically the lex fori.","Part 0.4 · Fiche 6"],
+["num","money","USD 20m v. ≈ 450,000","Value of the same death in a US court v. in a “new EU” Member State.","The applicable law decides the value of a claim.","Fiche 6"],
+["def","money","Servants and agents (Art. 30)","Ground handlers (Swissport, Menzies, dnata) benefit from the limits only if acting within the scope of employment. The aggregate cannot exceed the limits.","Cargo limits stay unbreakable even for them.","Fiche 6"],
+["num","money","SDR ≈ USD 1.35","IMF unit of account (1969), basket of five currencies. ≈ EUR 1.21 (October 2026).","","Part 0.3"],
+["num","money","€250 · €400 · €600","Reg. 261 Art. 7 compensation: ≤1,500 km · intra-EU >1,500 km and others 1,500–3,500 km · others.","Unchanged by the 2026 revision.","Part 0.3"],
+["num","money","7 · 14 · 21 days","Art. 31 MC99 written complaint: damage to checked baggage · damage to cargo · delay.","Warsaw 1929: 3 / 7 / 14 days.","Part 0.3"],
+["num","money","21 days","Checked baggage not arrived after this period → deemed lost (Art. 17(3)).","Loss is not “damage”: no 7-day notice needed.","Part 0.3"],
+["num","money","2 years","MC99 time bar (Art. 35), extinctive. Warsaw: 2 years (Art. 29). Rome 1952: 2, max 3.","Reg. 261: national law (Cuadrench Moré).","Part 0.3"],
+["num","money","16,000 SDR","Minimum advance payment per passenger in case of death (Reg. 2027/97 as amended).","","Part 0.1"],
+["q","money","What is the MC99 baggage limit today?","1,519 SDR per passenger (since 28.12.2024), non-material damage included (Vueling), unless a special declaration was made.","","Fiche 7"],
+["q","money","Can wilful misconduct break the cargo limit?","No. 26 SDR/kg is unbreakable; only a special declaration of interest raises it (Art. 22(3)).","","Fiche 10"],
+["num","money","100,000 SDR","Strict liability ceiling under the 1995 IATA inter-carrier agreements (>90% of the industry) — the bridge to MC99.","","Part 0.3"],
+// ───────── BAGAGES & RETARD
+["def","bag","Checked baggage (Art. 17(2))","Strict liability if the event happened on board or while in the carrier's charge. Defence: inherent defect, quality or vice of the baggage.","","Fiche 7"],
+["def","bag","Unchecked baggage","Carrier liable only for its fault or that of its servants or agents.","Animals in the cabin fall here.","Fiche 7"],
+["case","bag","Vueling (C-86/19)","The baggage limit includes non-material (moral) damage.","","Fiche 7"],
+["case","bag","Finnair (C-258/16)","An electronic record of an oral report at the airport counts as the written complaint of Art. 31.","","Fiche 7"],
+["def","bag","Art. 31(4): no notice, no action","Without a timely written complaint, no action lies against the carrier — save fraud on its part. Receipt without complaint = prima facie good condition.","","Fiche 7"],
+["def","bag","Delay (Art. 19)","Carrier liable for damage occasioned by delay unless it proves all reasonable measures were taken, or impossible to take. Passenger proves damage and causation.","Limit 6,303 SDR, broken by intent or recklessness.","Fiche 7"],
+["trap","bag","Using Art. 19 for a cancelled flight","MC99 does not cover cancellation or non-performance → national contract law and Reg. 261.","","Fiche 7"],
+["def","bag","MC99 delay + Reg. 261: cumulative","Reg. 261 = standardised, immediate, no proof of loss. MC99 = proven individual damage (IATA & ELFAA). Art. 12 Reg. 261: the court may deduct one from the other.","","Fiche 7"],
+["case","bag","Iberia (C-218/24, 16.10.2025)","A dog lost from the hold (Buenos Aires–Madrid–Barcelona) is checked baggage, not a passenger: the €5,000 moral damage claim is capped at the baggage limit.","Only a special declaration raises it.","Fiche 12"],
+["def","bag","Animals: three regimes","Cabin = unchecked baggage (fault) · hold = checked baggage (strict, 1,519 SDR) · under an air waybill = cargo (26 SDR/kg).","IATA Live Animals Regs are soft law: welfare, not liability.","Fiche 12"],
+["def","bag","Mobility aids","Baggage, capped at 1,519 SDR without special declaration — a powered wheelchair can cost far more. Reg. 2026/2202 (recital 40): free special declaration, full replacement cost.","","Fiche 7 · Fiche 17"],
+["trap","bag","Claiming moral damage on top of the baggage limit","It is included in the limit (Vueling; Iberia).","","Fiche 7"],
+// ───────── EXCLUSIVITÉ & FOR
+["def","excl","Art. 29 MC99 — exclusivity","Any action for damages, however founded — “in contract or in tort or otherwise” — only subject to the Convention's conditions and limits. Punitive damages never recoverable.","Warsaw equivalent: Art. 24. The wording comes from Guatemala City.","Fiche 8"],
+["case","excl","El Al v. Tseng (US SC, 1999)","Intrusive security search, no bodily injury, no accident → no claim at all, not even under New York law.","","Part 0.4 · Fiche 8"],
+["case","excl","Sidhu v. British Airways (HL, 1996/97)","BA149 hostages in Kuwait: Warsaw applied and was exclusive — no fallback on English law, the passengers got nothing.","","Part 0.4 · Fiche 8"],
+["case","excl","Stott v. Thomas Cook (UKSC, 2014)","A wheelchair user not seated next to his wife, humiliated: no claim under the UK PRM regulations, because it fell within MC99's substantive scope.","“It seems unfair…” — change left to the contracting States.","Part 0.4 · Fiche 8"],
+["case","excl","Thibodeau v. Air Canada (SCC, 2014)","Damages for failure to provide services in French on international flights: barred by exclusivity.","","Fiche 8"],
+["def","excl","Exclusivity outliers","France (Duffy v. Brit Air, 1986) and Lebanon (UTA 141, 2010: criminal proceedings continued after the Cotonou crash).","","Fiche 8"],
+["case","excl","Paris Air Crash of 3 March 1974 (US)","Exclusivity protects the carrier, not the manufacturer.","Contrast Hennessey v. Aer Lingus (Ireland, 2012).","Part 0.4 · Fiche 8"],
+["case","excl","IATA & ELFAA (C-344/04, 10.1.2006)","Reg. 261 is valid: its standardised, immediate redress is not “damages” under Art. 29 — it sits upstream of MC99's individual damages.","Canada: IATA lost again (2024 SCC 30).","Part 0.4 · Fiche 8"],
+["trap","excl","“The passenger can sue in tort instead”","Not against the carrier within the Convention's scope: no remedy under MC99 = no remedy at all.","","Fiche 8"],
+["def","excl","Art. 33(1): the four fora","In a State Party, at the plaintiff's option: carrier's domicile · principal place of business · place of business through which the contract was made · destination.","Never the place of origin as such.","Fiche 9"],
+["def","excl","The fifth jurisdiction (Art. 33(2))","Death or bodily injury only: the passenger's principal and permanent residence, if the carrier operates services to/from it and conducts business from premises leased or owned (by itself or a partner).","Added at the request of the US.","Fiche 9"],
+["trap","excl","Fifth jurisdiction for baggage, cargo or delay","No — death or bodily injury only. Cargo: only the four classic fora.","","Fiche 9"],
+["case","excl","Rothmans v. Saudi Arabian Airlines (1981)","“Place of business through which the contract was made” = where the ticket or air waybill was issued.","","Fiche 9"],
+["case","excl","West Caribbean Airways (2005)","Miami accepted MC99 jurisdiction but dismissed for forum non conveniens → Martinique then refused a case referred rather than chosen: 10+ years of ping-pong.","","Part 0.4 · Fiche 9"],
+["case","excl","Burton v. Air France-KLM (US)","Oregon resident injured on Montreal–Paris, booked online from Oregon: dismissed for lack of specific personal jurisdiction.","Daimler v. Bauman (“at home”), Bristol-Myers Squibb: the fifth jurisdiction made largely unusable.","Fiche 9"],
+["case","excl","Akulinin v. Ifly (UK) · Erwin-Simpson v. AirAsia","Fifth jurisdiction failed for a charter operator flying occasionally (“how much is enough?”); no jurisdiction over a parent whose subsidiary flew to the US.","","Fiche 9"],
+["def","excl","Art. 35: extinction, not limitation","Right extinguished after 2 years from arrival, from when it ought to have arrived, or when carriage stopped. No suspension; lex fori governs only the counting.","Proctor v. Jetway: “gone forever”. Laroche v. Spirit of Adventure [2009] EWCA Civ 12.","Fiche 9"],
+["def","excl","Arbitration (Art. 34)","Cargo only, agreed in writing, seat in an Art. 33(1) forum at the claimant's option, the tribunal applying MC99.","","Fiche 9"],
+["case","excl","Rehder v. Air Baltic (C-204/08, 2009)","Reg. 261 claims: Brussels Ia, place of departure or arrival. Consumer-contract rules don't apply to transport contracts.","","Part 0.4 · Fiche 9"],
+["q","excl","Can a passenger sue at the place of departure under Art. 33 MC99?","Not as such — only if it is also the carrier's domicile, principal place of business, place where the contract was made, or (return ticket) destination.","","Fiche 9"],
+["trap","excl","Applying Art. 33 MC99 to a Reg. 261 claim","Brussels Ia applies (Rehder).","","Fiche 9"],
+// ───────── CARGO
+["def","cargo","Art. 18(1): cargo liability","Strict liability for destruction, loss or damage “upon condition only that the event which caused the damage took place during the carriage by air” — the cause, not the damage, must occur in transit.","","Fiche 10"],
+["case","cargo","Wealmoor v. KLM (England, 2025)","Asparagus: “event” = anything that happens — switching off refrigeration is one. Winchester Fruit rejected; inherent vice needs prior proof of reasonable care (Albacora; Volcafe).","","Part 0.4 · Fiche 10"],
+["def","cargo","Art. 18(2): four exhaustive defences","(a) inherent defect or vice · (b) defective packing by someone other than the carrier · (c) war or armed conflict · (d) act of public authority (entry, exit, transit) — plus Art. 20.","","Fiche 10"],
+["trap","cargo","“The carrier took all reasonable measures” for lost cargo","That defence exists only for delay (Art. 19). For loss or damage: only the four Art. 18(2) defences. No weather or strike defence.","","Fiche 10"],
+["case","cargo","WE CBD v. Planet Nine (4th Cir. 2024)","Hemp seized by customs during carriage = act of public authority (Art. 18(2)(d)).","","Part 0.4 · Fiche 10"],
+["case","cargo","Brink's v. Air Canada (Fed. Ct. Canada, 2025)","Gold and banknotes stolen at Toronto Pearson: a customs value is not a special declaration of interest → limit applies.","","Part 0.4 · Fiche 10"],
+["def","cargo","Who may sue for cargo?","Consignor and consignee named on the AWB (Art. 14). France: only them (Cass. com. 8.7.2014). Common law: the true owner too (Gatewhite v. Iberia 1990; Western Digital v. BA 2001).","Subrogated insurers via Art. 15 (Paramount v. BA).","Fiche 10"],
+["def","cargo","The air waybill","Evidence of the contract and non-negotiable receipt — not a document of title. Master AWB: carrier–forwarder. House AWB: forwarder–shipper.","The cargo regime comes from Montreal Additional Protocol No. 4.","Fiche 10"],
+["def","cargo","The package rule (Art. 22(4))","Only the weight of the packages concerned counts, unless the loss affects the value of other packages under the same AWB.","Applied Implants v. Lufthansa Cargo; Motorola v. FedEx.","Fiche 10"],
+["case","cargo","Eli Lilly v. Air Express International (11th Cir. 2010)","Higher limits in a master logistics agreement don't apply to later air waybills unless expressly incorporated.","","Fiche 10"],
+["def","cargo","Multimodal: Arts 38 and 18(3)–(4)","MC99 covers only the air leg (network system); air period = cargo in the carrier's charge. Land carriage outside an airport is not air — BUT unlocalised loss in loading/delivery/transhipment is presumed air, and unauthorised substitution is deemed air.","","Fiche 11"],
+["num","cargo","8.33 SDR/kg","CMR limit for a road leg — breakable for wilful misconduct (Art. 29 CMR).","v. MC99 26 SDR/kg, unbreakable: cargo interests plead the CMR.","Part 0.3 · Fiche 11"],
+["case","cargo","Quantum v. Plane Trucking (EWCA, 2002)","Hard drives Singapore–Dublin; road leg Paris–Dublin under an Air France “flight” number, staged hijack in Wales → the CMR applies mandatorily to an international road leg.","The BGH (2008) disagrees: §§ 452 ff. HGB.","Part 0.4 · Fiche 11"],
+["case","cargo","Victoria Sales v. Emery (2d Cir. 1990) v. Rolls Royce v. Heavylift (2000)","Warsaw “aerodrome”: fence-based airport (US majority) v. functional airport area incl. off-airport warehouses (England).","","Part 0.4 · Fiche 11"],
+["def","cargo","Under MC99: custody v. geography","Germany/Austria: custody wins (OGH 2011; BGH I ZR 91/10). US case by case: Expeditors (2018), Unitrans (2024: airside not enough), Royal & Sun Alliance v. Air General (2025: 13 days outdoors awaiting customs = still air).","","Fiche 11"],
+["case","cargo","Commercial Union v. Alitalia (2d Cir. 2003)","Any ground transport covered by the air waybill counted as “delivery” — even 150 miles from JFK.","","Fiche 11"],
+["def","cargo","Airmail (Art. 2(2)–(3))","The carrier is liable only to the postal administration; MC99 does not otherwise apply. A sender cannot sue the airline for a lost postcard.","Mail v. cargo is formal: CN 38/41 delivery bill v. air waybill.","Fiche 12"],
+["def","cargo","Universal Postal Union","1874, Bern, 192 members, UN specialised agency: single postal territory, freedom of transit, universal service. Designated operators are the actors.","","Fiche 12"],
+["q","cargo","Undeclared wildlife in a shipment: must the carrier check every package?","No. The shipper is responsible for formalities and correct information (MC99 Arts 6, 10, 16; Annex 9). Screening looks for threats, not compliance.","Dutch Supreme Court, 16.9.2022.","Fiche 10"],
+// ───────── RÈGL. 261
+["def","r261","Reg. 261/2004 — the basics","Adopted 11.2.2004, applies since 17.2.2005. Replaced Reg. 295/91 (denied boarding only). About 100 CJEU cases — the most litigated EU act.","Weak spot: 2 passengers in 3 never claim, ~22% paid.","Fiche 13"],
+["def","r261","Scope (Art. 3(1))","(a) departing from an EU airport, any carrier · (b) from a third country to the EU on a Community carrier, unless benefits or compensation received there.","EU 27 + EEA + Switzerland + Art. 355 TFEU regions.","Fiche 13"],
+["case","r261","Emirates v. Schenkel (C-173/07, 2008)","Outbound and return are separate flights: Art. 3(1)(b) must be met by the return flight on its own.","","Part 0.4 · Fiche 13"],
+["case","r261","Breyer v. Sundair (C-292/18)","No operating licence under Reg. 1008/2008 → no Community carrier → no claim under Art. 3(1)(b).","","Fiche 13"],
+["def","r261","Excluded passengers","Free or reduced fares not available to the public (frequent-flyer tickets included). Sponsorship fare (VO v. SATA) out; baby free without seat (YE v. Vueling) out.","Qatar (C-516/23): paying only charges ≠ free.","Fiche 13"],
+["case","r261","LC, MD v. easyJet (C-756/18)","Passengers unable to prove check-in cannot be refused compensation unless it is established they were not carried.","","Fiche 13"],
+["case","r261","Wegener v. Royal Air Maroc (C-537/17, 2018)","Connecting flights on a single booking form a whole: the Regulation applies even to the leg between two Moroccan airports.","","Part 0.4 · Fiche 13"],
+["case","r261","CS v. České Aerolinie (C-502/18, 2019)","EU → third country via another: delay on the code-share leg operated by a non-EU partner → claim against the Community carrier of the first leg.","","Part 0.4 · Fiche 13"],
+["case","r261","SP v. KLM (C-367/20)","Mirror image: third country → EU via the EU; delay on the non-EU first leg → claim against the Community carrier of the second flight.","","Fiche 13"],
+["case","r261","AirHelp v. Austrian (C-451/20, 2022)","Departure and final arrival in third countries with an EU stopover (New York–Amsterdam–Istanbul): Reg. 261 does not apply.","","Fiche 13"],
+["case","r261","Q, R, S v. United (C-561/20, 2022)","Single Lufthansa booking, all legs operated by United: the non-EU operating carrier pays.","","Fiche 13"],
+["case","r261","Flightright v. American Airlines (C-436/21)","Unrelated carriers combined by a travel agency into one ticket at an overall price: still a connecting flight.","","Fiche 13"],
+["case","r261","Wirth v. Thomson (C-532/17, 2018)","Operating carrier = operates the flight + a contract with the passenger (not necessarily with it). It decides route, times, sales: in a wet lease, the lessee.","","Part 0.4 · Fiche 13"],
+["def","r261","Denied boarding (Arts 2(j), 4)","Volunteers first; then immediate compensation + re-routing/refund + care. No extraordinary-circumstances defence: only reasonable grounds (health, safety, security, inadequate documents).","","Fiche 14"],
+["case","r261","Finnair v. Lassooy (C-22/11) · LATAM (C-238/22)","Bumping passengers to minimise others' delay after a storm = denied boarding. Anticipatory refusal: the passenger need not present himself.","Also Rodríguez Cachafeiro (C-321/11), D.Z. v. Blue Air (C-584/18).","Part 0.4 · Fiche 14"],
+["def","r261","Cancellation: no compensation if…","Informed ≥ 2 weeks before · 2 weeks–7 days with re-routing −2h/+4h · < 7 days with re-routing −1h/+2h (Art. 5(1)(c)) · or extraordinary circumstances (Art. 5(3)).","Care and refund/re-routing always owed.","Part 0.3 · Fiche 14"],
+["case","r261","Cancellation or not?","Return to departure airport = cancellation (Sousa Rodríguez, C-83/10). Technical stop arriving ~2h late = no (Wunderlich, C-32/16). Brought forward > 1h = cancellation (Corendon). Postponed < 3h = no (C-395/20).","","Fiche 14"],
+["case","r261","Krijgsman v. Surinam Airways (C-302/16)","Notice given to the travel agent but not passed on = passenger not informed → compensation due. The carrier answers for its intermediaries.","","Part 0.4 · Fiche 16"],
+["case","r261","Sturgeon / Böck (C-402/07 & C-432/07, 19.11.2009)","Delay of 3 hours or more at final destination = compensation as for cancellation (equal treatment), same EC defence.","Confirmed: Nelson / TUI (C-581/10, 2012) and Amend (C-413/11).","Part 0.4 · Fiche 14"],
+["case","r261","Folkerts (C-11/11) · Germanwings v. Henning (C-452/13)","Delay is measured at the final destination; arrival = when a door opens.","2026 revision: “on blocks” instead.","Part 0.4 · Fiche 14"],
+["case","r261","Bossen (C-559/16, 2017)","Distance = great circle between first departure and final destination, not the route flown.","","Part 0.4 · Fiche 14"],
+["def","r261","Care thresholds (Art. 6)","2h (≤1,500 km) · 3h (intra-EU >1,500 km and others 1,500–3,500 km) · 4h (others). Hotel if departure next day. Refund option after 5h.","","Part 0.3 · Fiche 14"],
+["def","r261","Compensation details (Art. 7)","−50% if re-routed arriving within 2h/3h/4h. Paid in money; vouchers only with signed agreement. In the currency of the passenger's residence (Delfly, C-356/19).","","Fiche 14"],
+["def","r261","Refund or re-routing (Art. 8)","Full ticket price within 7 days (plus return to first departure point if relevant), or re-routing at the earliest opportunity, or later at the passenger's convenience.","Agency commission: Harms v. Vueling (C-601/17).","Fiche 14"],
+["case","r261","McDonagh v. Ryanair (C-12/11, 31.1.2013)","No “super-extraordinary” circumstances: care (Art. 9) is owed even in extraordinary circumstances (volcanic ash), without time limit, within what is necessary and reasonable.","","Part 0.4 · Fiche 14"],
+["num","r261","30 · 50 · 75%","Downgrading reimbursement of the ticket price by distance (Art. 10).","Economy Comfort is a service, not a class.","Part 0.3"],
+["q","r261","Scheduled arrival 10:00. Wheels down 12:50, door opened 13:05. Compensation?","Yes: arrival = when a door opens (Henning) → 3h05 at final destination ≥ 3h (Sturgeon).","","Fiche 14"],
+["q","r261","US carrier, New York → Paris, 5-hour delay. Reg. 261?","No: from a third country into the EU, Art. 3(1)(b) requires a Community carrier.","","Fiche 13"],
+["q","r261","Paris–Dubai–Paris on Emirates; the return Dubai→Paris is delayed 4h. Reg. 261?","No: outbound and return are separate (Emirates v. Schenkel); the return departs a third country on a non-Community carrier.","","Fiche 13"],
+["trap","r261","Compensating a 2h50 delay at arrival","3 hours at final destination, measured when a door opens.","","Fiche 14"],
+// ───────── CIRCONSTANCES EXTRAORDINAIRES
+["def","ec","Extraordinary circumstances (Art. 5(3))","Wallentin-Hermann test: (1) not inherent in the normal exercise of the carrier's activity, AND (2) beyond its actual control; then (3) unavoidable even with all reasonable measures. Burden on the carrier.","Covers compensation only — never care.","Part 0.5 · Fiche 15"],
+["case","ec","Wallentin-Hermann v. Alitalia (C-549/07, 22.12.2008)","Technical problems are in principle not extraordinary: problems found in maintenance or caused by failure to maintain are inherent.","The test became, in substance, internal v. external.","Part 0.4 · Fiche 15"],
+["case","ec","Van der Lans v. KLM (C-257/14, 17.9.2015)","Premature failure of parts, even undetectable in maintenance, is not extraordinary. Exceptions: hidden manufacturing defect affecting the fleet revealed by manufacturer/authority, sabotage, terrorism.","","Part 0.4 · Fiche 15"],
+["case","ec","Huzar v. Jet2.com [2014] EWCA Civ 791","England, same result: once identified, a technical problem is part of normal activity.","","Part 0.4"],
+["case","ec","A v. Finnair (C-832/18) · Finnair (C-385/23)","Premature failure of an “on-condition” part: not EC. Hidden design defect revealed by the manufacturer (service bulletin): can be EC.","","Part 0.4 · Fiche 15"],
+["case","ec","Pešková v. Travel Service (C-315/15, 2017)","Bird strike = extraordinary. But time lost to an unnecessary inspection is not excused; with mixed causes, only the EC part is deducted.","","Part 0.4 · Fiche 15"],
+["case","ec","External events that qualify","Runway debris damaging a tyre (Germanwings, C-501/17) · fuel on the runway (Moens, C-159/18) · another carrier's aircraft hitting a parked one (AirHelp, C-264/20).","","Part 0.4 · Fiche 15"],
+["case","ec","LE v. TAP (C-74/19, 2020)","Unruly passenger = extraordinary, relied on for the next flight of the same aircraft. But reasonable measures = re-routing on the fastest alternative, other carriers included.","","Part 0.4 · Fiche 15"],
+["case","ec","Internal events that don't","Own-staff strike (AirHelp v. SAS, C-28/20) · wildcat sick-out after restructuring (Krüsemann, C-195/17) · sudden death of the co-pilot (TAP, C-156/22).","","Part 0.4 · Fiche 15"],
+["case","ec","Siewert (C-394/14) v. Orbest (C-659/21)","Collision with the carrier's own mobile stairs: not EC. A third party's catering vehicle: may be EC.","An inconsistency criticised in class.","Fiche 15"],
+["def","ec","Third-party strikes","Strikes by air traffic controllers or airport staff are external — Annex I of Reg. 2026/2202 says so expressly. Cyberattacks: open question.","","Fiche 15"],
+["q","ec","Mr Skarsgard: return delayed 21h — inbound aircraft turned back for an unruly passenger, then a bird strike, then crew ran out of hours. Compensation?","Arguably no: both events external (TAP; Pešková), relied on for the next rotation; crew rest is a consequence. Against: were all reasonable measures taken (spare crew, aircraft, other carriers — TAP)? Care owed anyway (McDonagh).","","Part IV.3 · Fiche 15"],
+["q","ec","Engine defect found before departure. Extraordinary circumstance?","No (Wallentin-Hermann; Van der Lans) — unless a hidden manufacturing defect revealed by the manufacturer or an authority, sabotage or terrorism.","","Fiche 15"],
+["trap","ec","Forgetting the third step","Even an external event exonerates only if the carrier took all reasonable measures, including re-routing on other carriers (TAP).","","Fiche 15"],
+["trap","ec","Refusing care because of extraordinary circumstances","The defence covers compensation only (McDonagh).","","Fiche 14"],
+// ───────── ENFORCEMENT & 2026
+["def","r261","Arts 15 and 16","Art. 15: no waivers or restrictive clauses. Art. 16: each Member State designates a national enforcement body (NEB) with dissuasive sanctions.","LOT (C-597/20): Member States may empower NEBs to order payment.","Fiche 16"],
+["case","r261","Cuadrench Moré v. KLM (C-139/11, 2012)","Limitation period for Reg. 261 claims = national law (1 to 10 years), not Art. 35 MC99.","","Part 0.4 · Fiche 16"],
+["case","r261","Eventmedia v. Air Europa (C-11/23)","Bans on assigning claims in conditions of carriage are void under Art. 15.","","Fiche 16"],
+["def","r261","General Court & passenger rights","Since 1.10.2024 the General Court hears preliminary references on passenger rights (Art. 50b Statute). Germany is the leading referrer.","","Fiche 16"],
+["num","r261","23.10.2027","Date from which Reg. (EU) 2026/2202 applies (OJ 2.10.2026, in force 22.10.2026). Facts before that → Reg. 261/2004 as interpreted by the CJEU.","","Part 0.1 · Fiche 16"],
+["def","r261","Reg. 2026/2202: what changes","Keeps 3h and €250/400/600 · arrival = on blocks · 7–14-day tier gone · tarmac delay (info from 30 min, disembark after 2h) · missed connection (alternative within 5h) · 9 months to claim, 30 days to pay · hotel capped at 3 nights.","Defines extraordinary circumstances with an open Annex I.","Fiche 16"],
+["trap","r261","“The 2026 revision raised the threshold to 4–6 hours”","That was the Council's 2025 position. The final text keeps 3 hours and the same amounts.","","Fiche 16"],
+["num","r261","≈ €200 million","KLM's EU261 costs in 2025 (legal fees excluded); over 11,000 court cases in 2026, almost all from claim agencies.","One delayed long-haul flight ≈ €150,000 exposure.","Fiche 16"],
+// ───────── PRM, DATA, IA
+["def","misc","PRM: three layers","Human rights: CRPD Art. 9 (accessibility) · Public air law: Chicago Annex 9 Section F (17th ed. 2025) · EU: Reg. 1107/2006 and Art. 11 Reg. 261.","US: Air Carrier Access Act. Canada: SOR/2019-244.","Fiche 17"],
+["def","misc","PRM mistreated on an international flight","Humiliation without bodily injury → no damages (Arts 17 + 29 MC99, Stott). The remedy is public enforcement: CAA, US DOT ($50m penalty on American Airlines).","Mather v. easyJet: Reg. 1107/2006 doesn't diminish MC99 liability.","Fiche 17"],
+["def","misc","GDPR in 3 numbers","7 principles (Art. 5) · 6 lawful bases (Art. 6) · special categories incl. biometrics (Art. 9). Large-scale monitoring → DPIA (Arts 35–36).","","Fiche 18"],
+["case","misc","GDPR aviation fines","AENA facial recognition, inadequate DPIA: €10.04m · British Airways breach: £20m imposed (£183.39m proposed) · Emirates MEDIF: €180,000.","","Fiche 18"],
+["def","misc","AI Act and aviation","Annex I Section B for unmanned aircraft only; manned aviation via Art. 108 — EASA takes the requirements into account. EASA levels 1A–3B.","","Fiche 18"],
+["def","misc","Algorithmic pricing (Arts 101–102 TFEU)","Collusion via software = clear infringement · common provider: depends on knowledge (Eturas, VM Remonts) · independent convergence: grey area. Art. 102: personalised pricing by a dominant airline on a city pair.","Price discrimination is not illegal as such.","Fiche 23"],
+["def","misc","Counterfeit parts","A forged certificate on a sound part makes it ineligible, not necessarily defective. Recover via contracts first (warranties, indemnities), then misrepresentation, fraud, negligence.","AOG Technics (UK, 2023).","Fiche 23"],
+// ───────── TIERS AU SOL
+["def","third","Who is a third party?","Someone with no contractual relationship with the operator: a pedestrian, the owner of a house hit by debris. Ground handlers acting as the carrier's agents are not third parties.","","Part 0.5 · Fiche 19"],
+["case","third","Guille v. Swan (New York, 1822)","A balloonist was liable for the whole damage, including the crops trampled by the crowd that came to help (~$70 of ~$90): the root of strict surface liability.","","Part 0.4 · Fiche 19"],
+["def","third","Rome 1952, Art. 1","Compensation “upon proof only that the damage was caused by an aircraft in flight or by any person or thing falling therefrom”. No claim for indirect damage or lawful overflight (noise).","","Fiche 19"],
+["def","third","Rome 1952: territorial condition","Damage in a Contracting State caused by an aircraft registered in another Contracting State. Domestic crashes are not covered.","","Fiche 19"],
+["def","third","Rome 1952: in flight & operator","In flight: from power applied for take-off to the end of the landing run. Operator: the person making use of the aircraft (Art. 2); the registered owner is presumed operator (Art. 3).","","Part 0.5 · Fiche 19"],
+["def","third","Rome 1952: limits & forum","Weight-based limits per aircraft (Art. 11), 500,000 francs per person; unlimited only for a deliberate act intended to cause damage. Only the courts of the State of damage (Art. 20). 2 years, max 3.","","Fiche 19"],
+["num","third","≈ 49–51","Parties to Rome 1952 — none of the major aviation States (not France, Germany, NL, UK, US, Switzerland, Japan, China). Never applied in court.","Montreal Protocol 1978: 12 parties.","Part 0.1 · Fiche 19"],
+["def","third","Why Rome failed","Main aviation States never joined; limits too low; “foreign aircraft” condition excludes most surface accidents (domestic); national law gives victims more.","","Fiche 19"],
+["num","third","125,000 SDR","Per person under the Montreal Protocol 1978, which also excluded nuclear damage.","","Fiche 19"],
+["case","third","Surface disasters, all under national law","Lockerbie 1988 (11 killed on the ground) · Bijlmermeer 1992 (39) · 9/11 · Überlingen 2002 (mid-air collision, Skyguide).","Never under the Rome Convention.","Fiche 19"],
+["def","third","Four national models","Fault (US, Japan) · strict (most EU States) · limited strict + unlimited for fault (Germany, Austria) · unlimited strict (common law, France, Sweden).","EU applicable law: Rome II Art. 4(1), place of damage.","Fiche 20"],
+["def","third","Germany: §§ 33 ff. LuftVG","Any damage on German territory, strict, causation suffices. Limits by MTOW 750,000 → 700m SDR (2/3 personal injury, 1/3 property); unlimited for fault.","Mirrors Reg. 785/2004 Art. 7 insurance classes.","Part 0.3 · Fiche 20"],
+["def","third","The 2009 Conventions (not in force)","General Risks: strict up to MTOW limits, unlimited above unless no negligence (Montreal two-tier). Unlawful Interference: operator + a passenger-funded fund, up to 3.7bn SDR in total.","Both need 35 ratifications; UIC had 10 parties (Oct. 2025).","Part 0.3 · Fiche 20"],
+["q","third","A German-registered aircraft crashes on houses in Germany. Rome 1952?","No: Germany is not a party and it's a domestic aircraft. LuftVG applies: strict, limited by MTOW, unlimited for fault.","","Fiche 19–20"],
+["trap","third","Breaking the Rome limits for gross negligence","Only a deliberate act intended to cause damage.","","Fiche 19"],
+// ───────── RESP. PRODUIT
+["def","plc","Which directive governs?","Directive 85/374 → Directive (EU) 2024/2853, which applies to products placed on the market after 8.12.2026. Aircraft already in service stay under the old regime (UK: Consumer Protection Act 1987).","","Part 0.1 · Fiche 21"],
+["def","plc","Product (Art. 4 new PLD)","All movables, including software (SaaS too), digital manufacturing files, raw materials, electricity, components, related services.","Not mere information; not free open-source software outside a commercial activity.","Part 0.5 · Fiche 21"],
+["def","plc","Defect (Art. 7 new PLD)","Lack of the safety a person is entitled to expect or required by Union/national law. Nine circumstances incl. self-learning, interconnection, cybersecurity, recalls.","Not defective merely because a better product or update exists.","Fiche 21"],
+["def","plc","Damage (Art. 6 new PLD)","Death, injury incl. medically recognised psychological harm; property except the product itself and professional-only property; non-professional data destroyed.","","Fiche 21"],
+["def","plc","Liable persons (Art. 8)","Manufacturer (product and component) · non-EU maker → importer, authorised representative, then fulfilment service provider · substantial modifier · distributor silent > 1 month · platforms (DSA 6(3)).","Jointly and severally liable (Art. 12).","Fiche 21"],
+["def","plc","Old PLD defences (Art. 7 85/374)","(a) not put into circulation · (b) defect didn't exist then · (c) not for sale · (d) compliance with mandatory regulations · (e) development risk · (f) component: design of final product.","","Fiche 21"],
+["trap","plc","“We complied with aviation safety requirements”","Not the compliance defence: a specific mandatory rule must itself have caused the defect. The 737 MAX is not a (d) case. Certification doesn't exclude defectiveness.","","Fiche 21"],
+["def","plc","New PLD Art. 11(2)","No exemption where the defect is due to a related service, software incl. updates, a missing safety update, or a substantial modification — if within the manufacturer's control.","","Fiche 21"],
+["def","plc","Proof: Arts 9–10 new PLD","Disclosure orders. Defect presumed if no disclosure, non-compliance with safety rules, or obvious malfunction in normal use. Causation presumed if damage typically consistent. Both if excessive complexity.","","Fiche 21"],
+["num","plc","3 · 10 · 25 years","PLD: limitation 3 years from awareness · expiry 10 years after placing on the market · 25 years for latent personal injury.","","Part 0.3 · Fiche 21"],
+["q","plc","MediLift drone (made by QJI in China, imported by Torenhoge, owned by ABC, operated by Skywings) crashes. Who is liable under the PLD?","QJI (manufacturer) and Torenhoge (importer) — Art. 8. ABC, Skywings and the pilot are not PLD economic operators: other grounds (national owner/operator rules, fault).","","Fiche 21"],
+["case","plc","MacPherson v. Buick (1916) · Donoghue v. Stevenson (1932)","From privity of contract to negligence towards the ultimate consumer (collapsing wheel; snail in the ginger beer).","Then strict liability after thalidomide.","Part 0.4 · Fiche 21"],
+["def","plc","Withdrawn: the AI Liability Directive","Withdrawn on 6.10.2025.","","Fiche 21"],
+["def","plc","Why sue the manufacturer?","Not protected by the carrier conventions' caps or exclusivity; in the US, punitive damages, juries, discovery. But forum non conveniens may send claims back (AF447).","","Fiche 22"],
+["def","plc","Annex 13 investigations","Aim: prevention, not blame. State of occurrence leads. Recommendations are not findings of fault (“just culture”).","Tension with prosecutors in France, Italy, Brazil.","Fiche 22"],
+["def","plc","Continued v. continuing airworthiness","Continued = the manufacturer (reporting, unsafe condition, EASA ADs). Continuing = the operator. Part 21: type certificate (design) v. certificate of airworthiness (individual).","","Fiche 22"],
+["case","plc","Concorde (25.7.2000)","Titanium strip lost by a Continental DC-10 → tyre burst → fire. Continental and its mechanic convicted (2010), acquitted on appeal (2012, foreseeability); civil liability upheld.","","Part 0.4 · Fiche 22"],
+["case","plc","AF447 (1.6.2009, Rio–Paris, 228 dead)","US: forum non conveniens. France: acquittal (2023), conviction on appeal (21.5.2026), pending before the Cour de cassation.","","Part 0.4 · Fiche 22"],
+["case","plc","Armavia (Cass., 2015)","Airbus's contribution claim against the airline falls outside the Warsaw/Montreal Conventions.","","Part 0.4 · Fiche 22"],
+["case","plc","Wizz Air v. Alitalia (Fiumicino, 2013)","One incident, no injuries, three proceedings: ICC arbitration, Italian tort action defeated by an English judgment, six-year criminal case dismissed.","","Fiche 22"],
+["case","plc","Leicester City helicopter (2018)","Product liability claims (~GBP 2.15bn) under the Consumer Protection Act 1987 and negligence; regulatory-approval defence; disclosure of flight data.","","Fiche 22"],
+// ───────── ASSURANCE
+["def","ins","Insurance in one card","Transfers an existing, fortuitous risk for a premium, to an insured with an insurable interest; indemnity, not profit (Prudential v. IRC, 1904).","English law: utmost good faith → duty of fair presentation (Insurance Act 2015).","Fiche 24"],
+["def","ins","The London market","Broker (compulsory in London) places the risk with a slip → leading underwriter (~30%) sets terms → followers to 100% → reinsurance, facultative or treaty. Lloyd's = a society and marketplace, not a company.","Captives: Speedbird (BA), Delvag (Lufthansa).","Fiche 24"],
+["def","ins","Reg. 785/2004 — who","Every carrier and operator flying within, into, out of or over the EU, EU or not; State aircraft excluded. War and terrorism must be covered. Applies since 30.4.2005.","","Fiche 25"],
+["num","ins","250,000 SDR","Minimum passenger insurance per passenger (Art. 6 Reg. 785/2004) — never raised.","Non-commercial ≤ 2,700 kg MTOM: at least 100,000 SDR.","Part 0.3 · Fiche 25"],
+["num","ins","1,288 SDR · 22 SDR/kg","Reg. 785/2004 minima for baggage and cargo — now below MC99's 1,519 SDR and 26 SDR/kg.","","Part 0.3 · Fiche 25"],
+["num","ins","0.75m → 700m SDR","Third-party minimum per accident, by MTOM in 10 classes (Art. 7). B737: 300m · B747/A330: 500m.","","Part 0.3 · Fiche 25"],
+["trap","ins","Confusing 250,000 SDR with the liability limit","250,000 = insurance minimum. 151,880 = MC99 threshold, unlimited above.","","Fiche 25"],
+["def","ins","Sanctions & other sources","No cover → licence withdrawn (EU carrier) or landing refused (others). Overflights: third-party cover only. Art. 50 MC99 “shall” require adequate insurance; Rome Art. 15 “may”; Reg. 1008/2008 Arts 4(h), 11.","","Fiche 25"],
+["def","ins","The policy","Slip + wording (standard AVN 1C or bespoke). All risks: insurer proves an exclusion. Named perils: insured proves the peril.","","Fiche 26"],
+["def","ins","Hull insurance","“All risks of physical loss or damage howsoever occasioned”. Not compulsory. Excludes wear and tear, mechanical breakdown. Constructive total loss ~75–80% of value. Total loss assumed (60 days in AVN 1C).","50/50 clause: hull and war insurers share while cause unclear.","Fiche 26"],
+["def","ins","War risks","AVN 48B excludes ~28 hostile perils incl. (f) government seizure/restraint. Written back: LSW 555D (hull war), AVN 52E (liability). Cancellable on 7 days' notice.","","Part 0.1 · Fiche 26"],
+["def","ins","Lessors' protection","AVN 67B: lessor as additional insured — airline's breach doesn't prejudice it, proceeds paid to it, primary. Plus its own contingent and possessed policies.","","Fiche 26"],
+["case","ins","Kuwait Airways v. Scott v. Copenhagen Re","Aggregation: 15 aircraft seized at Kuwait airport (1990) = one occurrence, one limit. A BA 747 not targeted, destroyed months later = separate occurrence.","","Part 0.4 · Fiche 27"],
+["case","ins","Russian Aircraft Lessor Policy Claims [2025] EWHC 1430 (Comm)","Aircraft lost on 10.3.2022 by permanent deprivation; proximate cause Government Resolution 311 = government restraint, a war peril → war insurers pay under contingent cover.","Appeal pending.","Part 0.4 · Fiche 27"],
+["def","ins","Russian claims: the details","Contingent cover responds directly, possessed does not. 7-day cancellation notices fail: the peril had the aircraft “in its grip”. Sanctions clause (AVN 111) and country-of-registry exclusion rejected.","Registry = Bermuda or Ireland (Art. 18 Chicago).","Fiche 27"],
+["case","ins","Zephyrus [2024] EWHC 734 (Comm)","Stay refused: lessors could sue their insurers in London despite Russian-law operator policies.","","Part 0.4"],
+["q","ins","The aircraft are intact and still flying in Russia. Have the lessors suffered a loss?","Yes: deprivation of possession is a loss when, on the balance of probabilities, it is permanent (recovery a “mere chance”).","","Fiche 27"],
+["def","ins","Fronting","A local insurer, 99.9% reinsured: the reinsurers decide. Cut-through clauses let the insured claim directly from the reinsurers.","","Fiche 27"],
+["trap","ins","“Hull insurance is compulsory”","Only liability minima are compulsory (Reg. 785/2004).","","Fiche 26"],
+// ───────── TRANSVERSAL
+["q","core","One crash, every regime: who can be sued?","Carrier (MC99, contracting + actual) · manufacturer (PLD, negligence — no exclusivity) · MROs, ANSPs, airports, lessors · on the ground: operator (Rome or national law) · plus criminal proceedings and insurers.","","Part V.1–V.2"],
+];
+
+{
+const T={
+ core:{n:"Méthode",c:"#f4f1ea",ink:"#111"},
+ regime:{n:"Quel régime ?",c:"#2f5bff",ink:"#fff"},
+ pax:{n:"Art. 17 · passagers",c:"#ff2d6f",ink:"#fff"},
+ bag:{n:"Bagages & retard",c:"#ff9f1c",ink:"#111"},
+ money:{n:"Chiffres",c:"#ffd60a",ink:"#111"},
+ excl:{n:"Exclusivité & for",c:"#7a3cff",ink:"#fff"},
+ cargo:{n:"Cargo & courrier",c:"#00897b",ink:"#fff"},
+ r261:{n:"Règl. 261",c:"#ff5a1f",ink:"#111"},
+ ec:{n:"Circonstances extra.",c:"#c6f432",ink:"#111"},
+ third:{n:"Tiers au sol",c:"#1ed760",ink:"#111"},
+ plc:{n:"Resp. produit",c:"#14213d",ink:"#fff"},
+ ins:{n:"Assurance",c:"#00c2ff",ink:"#111"},
+ misc:{n:"PRM · data · IA",c:"#ff8fab",ink:"#111"}
+};
+const TL={def:"Notion",case:"Arrêt",num:"Chiffre",trap:"Piège",q:"Quiz"};
+const BIG={def:"§",case:"⚖",num:"#",trap:"✕",q:"?"};
+const D=CARDS.map((a,i)=>({id:i,t:a[0],k:a[1],h:a[2],b:a[3],x:a[4],s:a[5],ess:/Part 0/.test(a[5])}));
+const $=s=>document.querySelector(s);
+const feed=$("#feed");
+const store={get(k,d){try{const v=localStorage.getItem("als_"+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem("als_"+k,JSON.stringify(v))}catch(e){}}};
+let saved=new Set(store.get("saved",[])),done=new Set(store.get("done",[])),seen=new Set(store.get("seen",[]));
+let xp=store.get("xp",0),streak=0,best=store.get("best",0),sel=new Set(store.get("sel",[])),essOnly=store.get("ess",false);
+let tab="foryou",queue=[],pos=0,count=0;
+const save=()=>{store.set("saved",[...saved]);store.set("done",[...done]);store.set("seen",[...seen]);store.set("xp",xp);store.set("best",best);store.set("sel",[...sel]);store.set("ess",essOnly)};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const pool=()=>D.filter(c=>(tab==="saved"?saved.has(c.id):!done.has(c.id))&&(tab==="saved"||((!sel.size||sel.has(c.k))&&(!essOnly||c.ess))));
+function batch(){
+  const p=pool();if(!p.length)return[];
+  if(tab==="saved")return shuffle(p.slice());
+  const fresh=shuffle(p.filter(c=>!seen.has(c.id))),old=shuffle(p.filter(c=>seen.has(c.id)));
+  const out=fresh.concat(old),res=[];
+  // avoid same topic twice in a row
+  while(out.length){let i=out.findIndex(c=>!res.length||c.k!==res[res.length-1].k);if(i<0)i=0;res.push(out.splice(i,1)[0])}
+  return res;
+}
+const ICON={
+ heart:'<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.5-9.3C1.1 8.3 3.3 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.7 0 5.9 3.8 4.5 7.2C19.5 16.4 12 21 12 21z"/></svg>',
+ check:'<svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>',
+ skip:'<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'
+};
+function cardHTML(c){
+  const th=T[c.k],dark=th.ink==="#fff";
+  // recall mode: some cases & numbers become "guess" cards
+  const mode=c.t==="q"?"q":(c.t==="case"||c.t==="num")&&Math.random()<.4?"recall":"";
+  let inner=`<span class="badge">${TL[c.t]} · ${esc(th.n)}</span>`;
+  if(c.t==="num"){
+    inner+=mode?`<p class="body">${esc(c.b)}</p><div class="big hid" data-h>${esc(c.h)}</div><button class="reveal">Combien ? Touche pour voir</button>`
+               :`<div class="big">${esc(c.h)}</div><p class="body">${esc(c.b)}</p>`;
+  }else if(c.t==="trap"){
+    inner+=`<span class="lbl">Faux</span><p class="wrong">${esc(c.h)}</p><span class="lbl">Juste</span><p class="body">${esc(c.b)}</p>`;
+  }else if(mode){
+    inner+=`<h2>${esc(c.h)}</h2><p class="body hid" data-h>${esc(c.b)}</p><button class="reveal">${c.t==="q"?"Réponds dans ta tête… puis touche":"Quelle règle ? Touche pour voir"}</button>`;
+  }else{
+    inner+=`<h2>${esc(c.h)}</h2><p class="body">${esc(c.b)}</p>`;
+  }
+  if(c.x)inner+=`<div class="ex${mode?" hid":""}" ${mode?"data-h":""}><b>${c.t==="case"?"À retenir":"Ex."}</b> ${esc(c.x)}</div>`;
+  if(mode)inner+=`<div class="judge" hidden><button class="ok">Je savais</button><button class="no">Raté</button></div>`;
+  return `<section class="card${dark?" dark":""}" style="--c:${th.c};--ink:${th.ink}" data-id="${c.id}" data-big="${BIG[c.t]}" ${mode?'data-mode="1"':""}>
+   <div class="inner">${inner}</div>
+   <span class="src">${esc(c.s)}</span>
+   <aside class="rail">
+    <button class="like${saved.has(c.id)?" on":""}" aria-label="À revoir"><span class="ic">${ICON.heart}</span>À revoir</button>
+    <button class="done${done.has(c.id)?" on":""}" aria-label="Acquis"><span class="ic">${ICON.check}</span>Acquis</button>
+    <button class="next" aria-label="Suivante"><span class="ic">${ICON.skip}</span>Suivante</button>
+   </aside></section>`;
+}
+function endHTML(){
+  const msg=tab==="saved"?"Aucune carte à revoir. Touche ♥ sur une carte pour l'ajouter ici.":"Tout ce thème est marqué acquis. Change de thème ou remets à zéro.";
+  return `<section class="card end" style="--c:#111;--ink:#fff" data-end="1"><div class="inner"><span class="badge">Fin</span><h2>${tab==="saved"?"Rien à revoir":"Bravo 👏"}</h2><p class="body">${msg}</p></div></section>`;
+}
+function append(){
+  const b=batch();
+  if(!b.length){if(!feed.querySelector("[data-end]"))feed.insertAdjacentHTML("beforeend",endHTML());return}
+  queue=queue.concat(b);
+  feed.insertAdjacentHTML("beforeend",b.map(cardHTML).join(""));
+  feed.querySelectorAll(".card:not([data-obs])").forEach(el=>{el.dataset.obs=1;io.observe(el)});
+}
+function rebuild(){feed.innerHTML="";queue=[];feed.scrollTop=0;append();updateTop()}
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting&&e.intersectionRatio>.6)onView(e.target)})},{root:feed,threshold:[.6]});
+function onView(el){
+  if(el.dataset.end)return;
+  const id=+el.dataset.id;
+  const all=[...feed.querySelectorAll(".card")];pos=all.indexOf(el);
+  if(!el.dataset.v){el.dataset.v=1;count++;if(!seen.has(id)){seen.add(id);xp+=2}else xp+=1;
+    if(count%15===0)toast(`${count} cartes 💪`);save();updateTop()}
+  if(pos>=all.length-4)append();
+  if(pos>0)$("#hint").style.opacity=0;
+}
+function updateTop(){
+  $("#streak").textContent="🔥 "+streak;$("#xp").textContent=xp+" XP";
+  const p=pool();const s=p.filter(c=>seen.has(c.id)).length;
+  $("#prog").style.width=(p.length?Math.round(100*s/p.length):100)+"%";
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===(sheetOpen()?"topics":tab)));
+}
+let tt;function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),1400)}
+const buzz=n=>{try{navigator.vibrate&&navigator.vibrate(n)}catch(e){}};
+function heartAt(x,y){const h=document.createElement("div");h.className="heart";h.style.left=x+"px";h.style.top=y+"px";h.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.5-9.3C1.1 8.3 3.3 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.7 0 5.9 3.8 4.5 7.2C19.5 16.4 12 21 12 21z"/></svg>';document.body.appendChild(h);setTimeout(()=>h.remove(),800)}
+function confetti(x,y){const cols=["#ffd60a","#ff2d6f","#2f5bff","#1ed760","#fff","#00c2ff"];for(let i=0;i<28;i++){const s=document.createElement("i");s.className="conf";s.style.left=x+"px";s.style.top=y+"px";s.style.background=cols[i%cols.length];const a=Math.random()*Math.PI*2,d=80+Math.random()*160;s.style.setProperty("--dx",Math.cos(a)*d+"px");s.style.setProperty("--dy",Math.sin(a)*d-60+"px");s.style.setProperty("--r",(Math.random()*720-360)+"deg");document.body.appendChild(s);setTimeout(()=>s.remove(),1100)}}
+function reveal(card){card.querySelectorAll("[data-h]").forEach(e=>e.classList.remove("hid"));const r=card.querySelector(".reveal");if(r)r.remove();const j=card.querySelector(".judge");if(j)j.hidden=false}
+function like(card,force){const id=+card.dataset.id,b=card.querySelector(".like");const on=force??!saved.has(id);on?saved.add(id):saved.delete(id);b.classList.toggle("on",on);save();if(on)buzz(10)}
+function scrollTo(i){const all=feed.querySelectorAll(".card");const el=all[Math.max(0,Math.min(i,all.length-1))];if(el)el.scrollIntoView({behavior:"smooth"})}
+feed.addEventListener("click",e=>{
+  const card=e.target.closest(".card");if(!card||card.dataset.end)return;
+  const id=+card.dataset.id;
+  if(e.target.closest(".reveal")){reveal(card);return}
+  if(e.target.closest(".like")){like(card);toast(saved.has(id)?"Ajouté à À revoir ♥":"Retiré");return}
+  if(e.target.closest(".done")){const b=card.querySelector(".done");const on=!done.has(id);on?done.add(id):done.delete(id);b.classList.toggle("on",on);if(on){xp+=5;toast("Acquis ✓ +5 XP");scrollTo(pos+1)}save();updateTop();return}
+  if(e.target.closest(".next")){scrollTo(pos+1);return}
+  const j=e.target.closest(".judge button");
+  if(j){const ok=j.classList.contains("ok");card.querySelector(".judge").remove();
+        if(ok){streak++;const gain=10+Math.min(streak,10)*2;xp+=gain;if(streak>best)best=streak;confetti(e.clientX||innerWidth/2,e.clientY||innerHeight/2);buzz([12,40,12]);
+      toast(streak>=3&&streak%3===0?`Combo ×${streak} 🔥 +${gain} XP`:`+${gain} XP`)}
+    else{if(streak>=3)toast(`Série de ${streak} cassée — carte ajoutée à À revoir`);else toast("Ajoutée à À revoir ♥");streak=0;like(card,true)}
+    save();updateTop();setTimeout(()=>scrollTo(pos+1),ok?650:900);return}
+  // tap on a hidden card reveals it
+  if(card.dataset.mode&&card.querySelector(".reveal")){reveal(card);return}
+});
+let lastTap=0;feed.addEventListener("pointerup",e=>{const card=e.target.closest(".card");if(!card||card.dataset.end||e.target.closest("button"))return;const n=Date.now();if(n-lastTap<300){like(card,true);heartAt(e.clientX,e.clientY);toast("Ajouté à À revoir ♥")}lastTap=n});
+document.addEventListener("keydown",e=>{if(sheetOpen())return;if(["ArrowDown","j","PageDown"].includes(e.key)){e.preventDefault();scrollTo(pos+1)}else if(["ArrowUp","k","PageUp"].includes(e.key)){e.preventDefault();scrollTo(pos-1)}else if(e.key===" "){e.preventDefault();const c=feed.querySelectorAll(".card")[pos];if(c&&c.querySelector(".reveal"))reveal(c);else scrollTo(pos+1)}});
+// topics sheet
+const sheet=$("#sheet");const sheetOpen=()=>!sheet.hidden;
+function renderChips(){
+  $("#chips").innerHTML=Object.entries(T).map(([k,t])=>{const n=D.filter(c=>c.k===k).length,d=D.filter(c=>c.k===k&&done.has(c.id)).length;return `<button class="chip${sel.has(k)?" on":""}" data-k="${k}" style="--c:${t.c};--ink:${t.ink}">${esc(t.n)}<small>${n} cartes · ${d} acquises</small></button>`}).join("");
+  $("#ess").textContent=essOnly?"Essentiel (Part 0) ✓":"Essentiel (Part 0)";$("#ess").classList.toggle("ghost",!essOnly);
+}
+document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const t=b.dataset.tab;
+  if(t==="topics"){renderChips();sheet.hidden=false;updateTop();return}
+  sheet.hidden=true;if(t!==tab){tab=t;rebuild()}else updateTop()});
+$("#chips").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;const k=b.dataset.k;sel.has(k)?sel.delete(k):sel.add(k);renderChips()});
+$("#ess").addEventListener("click",()=>{essOnly=!essOnly;renderChips()});
+$("#go").addEventListener("click",()=>{sheet.hidden=true;tab="foryou";save();rebuild();toast(sel.size||essOnly?"Filtre appliqué":"Tout le cours")});
+sheet.addEventListener("click",e=>{if(e.target===sheet){sheet.hidden=true;updateTop()}});
+let armed=false;$("#reset").addEventListener("click",()=>{if(!armed){armed=true;$("#reset").textContent="Touche encore pour confirmer";setTimeout(()=>{armed=false;$("#reset").textContent="Remettre à zéro (acquis, XP)"},2500);return}
+  done.clear();seen.clear();saved.clear();xp=0;best=0;streak=0;armed=false;save();renderChips();$("#reset").textContent="Remettre à zéro (acquis, XP)";toast("Remis à zéro")});
+rebuild();
+}
+</script>
+<script>if("serviceWorker" in navigator){addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}</script>
+</body>
+</html>
